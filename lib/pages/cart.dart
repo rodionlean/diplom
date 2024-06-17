@@ -59,67 +59,84 @@ class Cart {
     }
   }
 
-  Future<void> printCartItems(List allItems) async {
-  final pdf = pw.Document();
+  Future<void> printCartItems(List<Map<String, dynamic>> allItems, Map<String, int> cartItems) async {
+    final pdf = pw.Document();
 
-  int totalQuantity = 0;
-  double totalPrice = 0.0;
+    int totalQuantity = 0;
+    int totalPrice = 0;
+for (var cartItemKey in cartItems.keys) {
+  final cartItemValue = cartItems[cartItemKey]!;
+  totalQuantity += cartItemValue;
 
-  /*for (var cartItemKey in cartItems.keys) {
-    final cartItemValue = cartItems[cartItemKey];
-    totalQuantity += cartItemValue!;
-
-    final item = allItems.firstWhere((element) => element['id'] == cartItemKey, orElse: () => null);
-    if (item != null) {
-      totalPrice += item['price'] * cartItemValue;
-    }
-  }*/
-
-  pdf.addPage(
-    pw.Page(
-      build: (pw.Context context) {
-        return pw.Column(
-          children: [
-            pw.Text('Cart Items', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-            pw.Expanded(
-              child: pw.ListView.builder(
-                itemCount: cartItems.length,
-                itemBuilder: (context, index) {
-                  final cartItemKey = cartItems.keys.elementAt(index);
-                  final cartItemValue = cartItems[cartItemKey];
-                
-                  // Найти элемент в allItems с совпадающим id
-                  final item = allItems.firstWhere((element) => element['id'] == cartItemKey, orElse: () => null);
-                
-                  if (item != null) {
-                    return pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text('ID: $cartItemKey'),
-                        pw.Text('Quantity: $cartItemValue'),
-                        pw.Text('Name: ${item['name']}'),
-                        pw.Text('Type: ${item['type']}'),
-                        pw.Text('Price: ${item['price']}'),
-                      ],
-                    );
-                  } else {
-                    return pw.Text('Item not found for ID: $cartItemKey');
-                  }
-                },
-              ),
-            ),
-            //pw.Divider(),
-            pw.Text('Total Quantity: $totalQuantity', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-            pw.Text('Total Price: \$${totalPrice.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-          ],
-        );
-      },
-    ),
+  final item = allItems.firstWhere(
+    (element) => element['id'] == cartItemKey,
+    orElse: () => {},
   );
-  
-  await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+  if (item != null) {
+    int itemPrice = int.tryParse(item['price'].toString()) ?? 0;
+    totalPrice += itemPrice * cartItemValue;
+  }
 }
 
+    pdf.addPage(
+  pw.Page(
+    build: (pw.Context context) {
+      List<pw.Widget> itemWidgets = [];
+
+      // Iterate through cartItems
+      for (var cartItemKey in cartItems.keys) {
+        final cartItemValue = cartItems[cartItemKey];
+
+        final item = allItems.firstWhere((element) => element['id'] == cartItemKey, orElse: () => {});
+
+        if (item != null) {
+          itemWidgets.add(
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('ID: $cartItemKey'),
+                pw.SizedBox(height: 5), // Add space between items
+                pw.Text('Quantity: $cartItemValue'),
+                pw.SizedBox(height: 5), // Add space between items
+                pw.Text('Name: ${item['name']}'),
+                pw.SizedBox(height: 5), // Add space between items
+                pw.Text('Type: ${item['type']}'),
+                pw.SizedBox(height: 5), // Add space between items
+                pw.Text('Color: ${item['color']}'),
+                pw.SizedBox(height: 5), // Add space between items
+                pw.Text('Price: \$${item['price']}'),
+                pw.Divider(), // Add a divider between items
+              ],
+            ),
+          );
+        } else {
+          itemWidgets.add(
+            pw.Text('Item not found for ID: $cartItemKey'),
+          );
+        }
+      }
+
+      return pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('Cart Items', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 10), // Add space below 'Cart Items'
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: itemWidgets,
+          ),
+          pw.Divider(),
+          pw.Text('Total Quantity: $totalQuantity', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+          pw.Text('Total Price: \$${totalPrice.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+        ],
+      );
+    },
+  ),
+);
+
+    
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+  }
 }
 
 Cart cart = Cart();
@@ -139,7 +156,8 @@ class _CartPageState extends State<CartPage> {
   final myController = TextEditingController();
   double _scrollPosition = 0;
   double _opacity = 0;
-  List allItems = [];
+  List<Map<String, dynamic>> allItems = []; // Явное указание типа List<Map<String, dynamic>>
+
   double totalPrice = 0.0;
 
   @override
@@ -152,7 +170,8 @@ class _CartPageState extends State<CartPage> {
     await cart.loadCartItems();
     await FireStoreDatabase().getData().then((data) {
       setState(() {
-        allItems = data as List;
+        // Явное приведение типа List<dynamic> к List<Map<String, dynamic>>
+        allItems = (data as List).cast<Map<String, dynamic>>();
         totalPrice = getTotalPrice();
       });
     });
@@ -161,9 +180,9 @@ class _CartPageState extends State<CartPage> {
   double getTotalPrice() {
     double totalPrice = 0.0;
     cart.cartItems.forEach((itemId, count) {
-      var itemData = allItems.firstWhere((item) => item['id'] == itemId, orElse: () => null);
+      var itemData = allItems.firstWhere((item) => item['id'] == itemId, orElse: () => {});
       if (itemData != null) {
-        double itemPrice = double.tryParse(itemData["price"] ?? '0.0') ?? 0.0; // Use null-aware operator and provide default value
+        double itemPrice = double.tryParse(itemData["price"].toString()) ?? 0.0; // Use null-aware operator and provide default value
         totalPrice += itemPrice * count;
       }
     });
@@ -254,16 +273,16 @@ class _CartPageState extends State<CartPage> {
                 child: Text('Clear cart', style: TextStyle(color: Colors.black)),
               ),
               ElevatedButton(
+                child: Text('Print cart', style: TextStyle(color: Colors.black)),
                 onPressed: () async {
-                  await cart.printCartItems(allItems);
+                  await cart.printCartItems(allItems, cart.cartItems);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
-                  ),
+                                      ),
                 ),
-                child: Text('Print cart', style: TextStyle(color: Colors.black)),
               ),
             ],
           ),
@@ -277,7 +296,8 @@ class _CartPageState extends State<CartPage> {
             return const Text("Error");
           }
           if (snapshot.connectionState == ConnectionState.done) {
-            allItems = snapshot.data as List;
+            // Явное приведение типа List<dynamic> к List<Map<String, dynamic>>
+            allItems = (snapshot.data as List).cast<Map<String, dynamic>>();
             return buildItem(allItems);
           }
           return const Center(child: CircularProgressIndicator());
@@ -291,27 +311,26 @@ class _CartPageState extends State<CartPage> {
   }
 
   void updateItemCount(String itemId, int change) async {
-  String message;
-  if (change > 0) {
-    await cart.addValue(itemId);
-    message = 'Item added to cart';
-  } else {
-    await cart.removeValue(itemId);
-    message = 'Item removed from cart';
+    String message;
+    if (change > 0) {
+      await cart.addValue(itemId);
+      message = 'Item added to cart';
+    } else {
+      await cart.removeValue(itemId);
+      message = 'Item removed from cart';
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: Duration(seconds: 2), // Adjust the duration as needed
+      ),
+    );
+    setState(() {
+      totalPrice = getTotalPrice();
+    });
   }
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(message),
-      duration: Duration(seconds: 2), // Adjust the duration as needed
-    ),
-  );
-  setState(() {
-    totalPrice = getTotalPrice();
-  });
-}
 
-  
-  Widget buildItem(List allItems) {
+  Widget buildItem(List<Map<String, dynamic>> allItems) {
     Map<String, int> matchItems = cart.cartItems;
 
     return matchItems.isEmpty
@@ -327,11 +346,11 @@ class _CartPageState extends State<CartPage> {
             itemBuilder: (BuildContext context, int index) {
               String itemId = matchItems.keys.elementAt(index);
               int itemCount = matchItems[itemId]!;
-              var itemData = allItems.firstWhere((item) => item['id'] == itemId, orElse: () => null);
+              var itemData = allItems.firstWhere((item) => item['id'] == itemId, orElse: () => {});
               if (itemData == null) {
                 return SizedBox.shrink(); // Return an empty widget if itemData is null
               }
-              double itemPrice = double.tryParse(itemData["price"] ?? '0.0') ?? 0.0;
+              double itemPrice = double.tryParse(itemData["price"].toString()) ?? 0.0;
               double totalItemPrice = itemPrice * itemCount;
 
               return InkWell(
@@ -339,11 +358,11 @@ class _CartPageState extends State<CartPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ItemPage(int.parse(itemData['id'])),
+                      builder: (context) => ItemPage(int.parse(itemData['id'].toString())),
                     ),
                   );
                 },
-                                child: Card(
+                child: Card(
                   elevation: 5,
                   margin: EdgeInsets.symmetric(vertical: 10),
                   child: Padding(
@@ -460,3 +479,4 @@ class _CartPageState extends State<CartPage> {
           );
   }
 }
+
