@@ -59,28 +59,67 @@ class Cart {
     }
   }
 
-  Future<void> printCartItems() async {
-    final pdf = pw.Document();
-    pdf.addPage(
-      pw.Page(
-        build: (pw.Context context) {
-          return pw.Column(
-            children: [
-              pw.Text('Cart Items', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-              pw.ListView.builder(
+  Future<void> printCartItems(List allItems) async {
+  final pdf = pw.Document();
+
+  int totalQuantity = 0;
+  double totalPrice = 0.0;
+
+  /*for (var cartItemKey in cartItems.keys) {
+    final cartItemValue = cartItems[cartItemKey];
+    totalQuantity += cartItemValue!;
+
+    final item = allItems.firstWhere((element) => element['id'] == cartItemKey, orElse: () => null);
+    if (item != null) {
+      totalPrice += item['price'] * cartItemValue;
+    }
+  }*/
+
+  pdf.addPage(
+    pw.Page(
+      build: (pw.Context context) {
+        return pw.Column(
+          children: [
+            pw.Text('Cart Items', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+            pw.Expanded(
+              child: pw.ListView.builder(
                 itemCount: cartItems.length,
                 itemBuilder: (context, index) {
-                  final item = cartItems.entries.elementAt(index);
-                  return pw.Text('${item.key}: ${item.value}');
+                  final cartItemKey = cartItems.keys.elementAt(index);
+                  final cartItemValue = cartItems[cartItemKey];
+                
+                  // Найти элемент в allItems с совпадающим id
+                  final item = allItems.firstWhere((element) => element['id'] == cartItemKey, orElse: () => null);
+                
+                  if (item != null) {
+                    return pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('ID: $cartItemKey'),
+                        pw.Text('Quantity: $cartItemValue'),
+                        pw.Text('Name: ${item['name']}'),
+                        pw.Text('Type: ${item['type']}'),
+                        pw.Text('Price: ${item['price']}'),
+                      ],
+                    );
+                  } else {
+                    return pw.Text('Item not found for ID: $cartItemKey');
+                  }
                 },
               ),
-            ],
-          );
-        },
-      ),
-    );
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
-  }
+            ),
+            //pw.Divider(),
+            pw.Text('Total Quantity: $totalQuantity', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            pw.Text('Total Price: \$${totalPrice.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+          ],
+        );
+      },
+    ),
+  );
+  
+  await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+}
+
 }
 
 Cart cart = Cart();
@@ -216,7 +255,7 @@ class _CartPageState extends State<CartPage> {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  await cart.printCartItems();
+                  await cart.printCartItems(allItems);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
