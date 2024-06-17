@@ -130,7 +130,7 @@ class _TopAppBarState extends State<TopAppBar> {
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => CartPage(cart.cartItems)));
                     },
-                    child: Icon(Icons.shopping_cart, size: 50, color: Colors.grey),
+                    child: Icon(Icons.shopping_cart, size: 50, color: Colors.white),
                   ),
                   SizedBox(width: 20),
                   _buildSignInSignOutButton(),

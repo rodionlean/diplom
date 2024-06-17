@@ -75,7 +75,7 @@ class _ItemPageState extends State<ItemPage> {
                             MaterialPageRoute(
                                 builder: (context) => CartPage(cart.cartItems)));
                       },
-                      child: Icon(Icons.shopping_cart, size: 35, color: Colors.grey),
+                      child: Icon(Icons.shopping_cart, size: 35, color: Colors.white),
                     ),
                   ),
                 ],

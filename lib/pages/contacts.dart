@@ -62,7 +62,7 @@ class _ContactsPage extends State<ContactsPage> {
                                 builder: (context) =>
                                     CartPage(cart.cartItems)));
                       },
-                      child: Icon(Icons.shopping_cart, size: 35, color: Colors.grey),
+                      child: Icon(Icons.shopping_cart, size: 35, color: Colors.white),
                     ),
                   ),
                 ],
@@ -116,7 +116,7 @@ class _ContactsPage extends State<ContactsPage> {
               SizedBox(height: 20),
               Container(
                 child: Image.asset(
-                  'images/map.png', // Путь к изображению карты
+                  'images/mapENG.png', // Путь к изображению карты
                 ),
               )
             ],
